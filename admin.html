@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NYSA Admin Panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="js/site-defaults.js"></script>
+  <script src="js/firebase-site.js"></script>
+  <style>
+    :root {
+      --yellow: #FFD200;
+      --dark: #1A1A2E;
+      --gray: #6B7280;
+      --border: #e8e8e8;
+      --cream: #FFFBF0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Poppins, sans-serif; background: #f4f5f7; color: var(--dark); }
+    .admin-login {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .admin-login-box {
+      background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,.08);
+      width: 100%; max-width: 400px; text-align: center;
+    }
+    .admin-login-box h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    .admin-login-box p { color: var(--gray); font-size: 0.9rem; margin-bottom: 24px; }
+    .admin-login-box input {
+      width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px;
+      font-family: inherit; margin-bottom: 16px;
+    }
+    .admin-btn {
+      background: var(--yellow); color: var(--dark); font-weight: 700; padding: 12px 24px;
+      border: none; border-radius: 10px; cursor: pointer; font-family: inherit;
+    }
+    .admin-btn:hover { filter: brightness(0.95); }
+    .admin-btn-dark { background: var(--dark); color: #fff; }
+    .admin-btn-outline { background: #fff; border: 1px solid var(--border); }
+    .admin-btn-sm { padding: 8px 14px; font-size: 0.82rem; }
+    .admin-btn-danger { background: #fee2e2; color: #b91c1c; }
+    .admin-layout { display: flex; min-height: 100vh; }
+    .admin-sidebar {
+      width: 260px; background: var(--dark); color: #fff; padding: 24px 0; flex-shrink: 0;
+      position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto;
+    }
+    .admin-sidebar h2 {
+      font-size: 1.1rem; padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,.1);
+      margin-bottom: 12px;
+    }
+    .admin-sidebar h2 span { color: var(--yellow); }
+    .admin-nav-btn {
+      display: block; width: 100%; text-align: left; padding: 12px 20px; color: rgba(255,255,255,.75);
+      background: none; border: none; font-family: inherit; font-size: 0.88rem; cursor: pointer;
+    }
+    .admin-nav-btn:hover, .admin-nav-btn.active { background: rgba(255,210,0,.15); color: var(--yellow); }
+    .admin-main { margin-left: 260px; flex: 1; padding: 28px 32px 48px; }
+    .admin-topbar {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+      gap: 16px; margin-bottom: 28px;
+    }
+    .admin-topbar h1 { font-size: 1.5rem; }
+    .admin-card {
+      background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.04); border: 1px solid var(--border);
+    }
+    .admin-card h3 { font-size: 1rem; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .admin-field { margin-bottom: 14px; }
+    .admin-field label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; color: var(--gray); }
+    .admin-field input, .admin-field textarea, .admin-field select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.88rem;
+    }
+    .admin-field textarea { min-height: 80px; resize: vertical; }
+    .admin-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .admin-item-card {
+      border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; background: var(--cream);
+    }
+    .admin-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .admin-item-head strong { font-size: 0.9rem; }
+    .admin-preview-img { width: 80px; height: 56px; object-fit: cover; border-radius: 8px; margin-top: 8px; }
+    .admin-course-search-results {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .admin-course-search-results li + li { border-top: 1px solid var(--border); }
+    .admin-course-search-results button {
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      background: #fff;
+      border: none;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .admin-course-search-results button:hover { background: var(--cream); }
+    .admin-popular-selected {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+    .admin-toast {
+      position: fixed; bottom: 24px; right: 24px; background: var(--dark); color: #fff;
+      padding: 14px 22px; border-radius: 10px; font-size: 0.88rem; z-index: 9999;
+      box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    }
+    .admin-loading { padding: 48px; text-align: center; color: var(--gray); }
+    .admin-hint { font-size: 0.8rem; color: var(--gray); margin-top: 4px; }
+    .admin-menu-toggle {
+      display: none;
+      background: var(--dark);
+      color: #fff;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      font-size: 1.25rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .admin-sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 999;
+    }
+    .admin-sidebar-backdrop.visible { display: block; }
+    .admin-topbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .admin-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .admin-topbar-left h1 {
+      font-size: 1.5rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 1024px) {
+      .admin-menu-toggle { display: flex; align-items: center; justify-content: center; }
+      .admin-sidebar {
+        width: min(280px, 88vw);
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 1001;
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.2);
+      }
+      .admin-sidebar.open { transform: translateX(0); }
+      .admin-main { margin-left: 0; padding: 18px 18px 36px; }
+      .admin-card { padding: 18px; }
+      .admin-topbar-left h1 { font-size: 1.2rem; max-width: calc(100vw - 140px); }
+      .admin-grid-2 { grid-template-columns: 1fr; }
+      .admin-topbar-actions { width: 100%; }
+      .admin-topbar-actions .admin-btn {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.82rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .admin-topbar {
+        margin-bottom: 18px;
+        gap: 12px;
+      }
+      .admin-topbar-left h1 { font-size: 1.05rem; max-width: calc(100vw - 120px); }
+      .admin-topbar-actions {
+        width: 100%;
+      }
+      .admin-topbar-actions .admin-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        text-align: center;
+      }
+      .admin-card {
+        padding: 16px;
+        margin-bottom: 14px;
+        border-radius: 12px;
+      }
+      .admin-card h3 { font-size: 0.92rem; margin-bottom: 12px; padding-bottom: 10px; }
+      .admin-field { margin-bottom: 12px; }
+      .admin-field label { font-size: 0.72rem; }
+      .admin-field input, .admin-field textarea, .admin-field select {
+        padding: 9px 10px;
+        font-size: 0.85rem;
+      }
+      .admin-field textarea { min-height: 72px; }
+      .admin-grid-2 { grid-template-columns: 1fr; gap: 0; }
+      .admin-item-card { padding: 12px; }
+      .admin-item-head { flex-wrap: wrap; gap: 8px; }
+      .admin-nav-btn { padding: 10px 16px; font-size: 0.82rem; }
+      .admin-sidebar h2 { font-size: 1rem; padding: 0 16px 16px; }
+      .admin-login { padding: 16px; }
+      .admin-login-box { padding: 28px 20px; }
+      .admin-toast {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        text-align: center;
+        font-size: 0.82rem;
+      }
+      .admin-preview-img { max-width: 100%; width: auto; height: auto; max-height: 120px; }
+    }
+
+    @media (max-width: 480px) {
+      .admin-btn { padding: 10px 16px; font-size: 0.85rem; }
+      .admin-btn-sm { padding: 6px 10px; font-size: 0.75rem; }
+      .admin-login-box h1 { font-size: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const ADMIN_PASS = 'nysa@123';
+
+    const SECTIONS = [
+      { id: 'hero', label: 'Hero Section' },
+      { id: 'aboutPreview', label: 'About Video (Home)' },
+      { id: 'courses', label: 'Courses' },
+      { id: 'popularCourses', label: 'Popular Courses' },
+      { id: 'workshops', label: 'Workshops' },
+      { id: 'galleryPage', label: 'Photo Gallery Page' },
+      { id: 'videoGalleryPage', label: 'Video Gallery Page' },
+      { id: 'testimonials', label: 'Testimonials' },
+      { id: 'about', label: 'About Page' },
+      { id: 'contact', label: 'Contact & Footer' },
+      { id: 'stats', label: 'Stats & Features' },
+    ];
+
+    function Field({ label, hint, children }) {
+      return (
+        <div className="admin-field">
+          <label>{label}</label>
+          {children}
+          {hint && <p className="admin-hint">{hint}</p>}
+        </div>
+      );
+    }
+
+    function AdminLogin({ onSuccess }) {
+      const [pass, setPass] = useState('');
+      const [err, setErr] = useState('');
+      const submit = (e) => {
+        e.preventDefault();
+        if (pass === ADMIN_PASS) {
+          sessionStorage.setItem('nysa_admin_auth', '1');
+          onSuccess();
+        } else setErr('Invalid password');
+      };
+      return (
+        <div className="admin-login">
+          <form className="admin-login-box" onSubmit={submit}>
+            <h1>NYSA Admin</h1>
+            <p>Enter password to manage website content</p>
+            <input type="password" placeholder="Password" value={pass} onChange={(e) => setPass(e.target.value)} autoFocus />
+            {err && <p style={{ color: '#b91c1c', marginBottom: 12, fontSize: '0.85rem' }}>{err}</p>}
+            <button type="submit" className="admin-btn" style={{ width: '100%' }}>Proceed →</button>
+          </form>
+        </div>
+      );
+    }
+
+    function HeroEditor({ content, setContent }) {
+      const h = content.hero || {};
+      const set = (key, val) => setContent({ ...content, hero: { ...h, [key]: val } });
+      return (
+        <div className="admin-card">
+          <h3>Hero Section</h3>
+          <div className="admin-grid-2">
+            <Field label="Welcome text"><input value={h.welcome || ''} onChange={(e) => set('welcome', e.target.value)} /></Field>
+            <Field label="Name pill"><input value={h.namePill || ''} onChange={(e) => set('namePill', e.target.value)} /></Field>
+            <Field label="Heading line 1"><input value={h.line1 || ''} onChange={(e) => set('line1', e.target.value)} /></Field>
+            <Field label="Heading line 2 (yellow)"><input value={h.line2 || ''} onChange={(e) => set('line2', e.target.value)} /></Field>
+          </div>
+          <Field label="Short description"><textarea value={h.descShort || ''} onChange={(e) => set('descShort', e.target.value)} /></Field>
+          <Field label="Long description (desktop)"><textarea value={h.descLong || ''} onChange={(e) => set('descLong', e.target.value)} /></Field>
+          <Field label="Hero image URL" hint="Paste direct image link (https://...)">
+            <input value={h.image || ''} onChange={(e) => set('image', e.target.value)} />
+            {h.image && <img src={h.image} alt="" className="admin-preview-img" onError={(e) => { e.target.style.display = 'none'; }} />}
+          </Field>
+          <p className="admin-hint">“Watch Video” on the home page scrolls to the About section video below the hero.</p>
+        </div>
+      );
+    }
+
+    function AboutPreviewEditor({ content, setContent }) {
+      const a = content.aboutPreview || {};
+      const set = (key, val) => setContent({ ...content, aboutPreview: { ...a, [key]: val } });
+      return (
+        <div className="admin-card">
+          <h3>About Section (Home Page — 2nd section)</h3>
+          <p className="admin-hint" style={{ marginBottom: 16 }}>
+            YouTube video is shown directly on the home page (no separate image). Paste link and save.
+          </p>
+          <Field label="YouTube video link" hint="Video appears embedded in the about section on home">
+            <input
+              value={a.youtubeUrl || ''}
+              onChange={(e) => set('youtubeUrl', e.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </Field>
+          {(() => {
+            const vid = window.NYSA_FIREBASE?.extractYoutubeId(a.youtubeUrl);
+            if (!vid) return null;
+            return (
+            <div style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', aspectRatio: '16/9', maxWidth: 480, background: '#000' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${vid}?rel=0`}
+                title="Preview"
+                style={{ width: '100%', height: '100%', border: 'none', minHeight: 200 }}
+                allowFullScreen
+              />
+            </div>
+            );
+          })()}
+          <Field label="Paragraph 1"><textarea value={a.text1 || ''} onChange={(e) => set('text1', e.target.value)} /></Field>
+          <Field label="Paragraph 2"><textarea value={a.text2 || ''} onChange={(e) => set('text2', e.target.value)} /></Field>
+        </div>
+      );
+    }
+
+    function StatsEditor({ content, setContent }) {
+      const updateList = (key, list) => setContent({ ...content, [key]: list });
+      const StatList = ({ title, listKey }) => (
+        <div className="admin-card">
+          <h3>{title}</h3>
+          {(content[listKey] || []).map((item, i) => (
+            <div key={i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>#{i + 1}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => updateList(listKey, content[listKey].filter((_, j) => j !== i))}>Remove</button>
+              </div>
+              <div className="admin-grid-2">
+                <Field label="Icon (emoji)"><input value={item.icon || ''} onChange={(e) => { const n = [...content[listKey]]; n[i] = { ...n[i], icon: e.target.value }; updateList(listKey, n); }} /></Field>
+                <Field label="Number"><input value={item.num || ''} onChange={(e) => { const n = [...content[listKey]]; n[i] = { ...n[i], num: e.target.value }; updateList(listKey, n); }} /></Field>
+              </div>
+              <Field label="Label"><input value={item.label || ''} onChange={(e) => { const n = [...content[listKey]]; n[i] = { ...n[i], label: e.target.value }; updateList(listKey, n); }} /></Field>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => updateList(listKey, [...(content[listKey] || []), { icon: '⭐', num: '0', label: 'New stat' }])}>+ Add</button>
+        </div>
+      );
+      return (
+        <>
+          <StatList title="Hero stats (home)" listKey="heroStats" />
+          <StatList title="Impact stats" listKey="impactStats" />
+          <div className="admin-card">
+            <h3>Feature strip (home)</h3>
+            {(content.features || []).map((item, i) => (
+              <div key={i} className="admin-item-card">
+                <div className="admin-grid-2">
+                  <Field label="Icon"><input value={item.icon || ''} onChange={(e) => { const n = [...content.features]; n[i] = { ...n[i], icon: e.target.value }; updateList('features', n); }} /></Field>
+                  <Field label="Title"><input value={item.title || ''} onChange={(e) => { const n = [...content.features]; n[i] = { ...n[i], title: e.target.value }; updateList('features', n); }} /></Field>
+                </div>
+                <Field label="Subtitle"><input value={item.sub || ''} onChange={(e) => { const n = [...content.features]; n[i] = { ...n[i], sub: e.target.value }; updateList('features', n); }} /></Field>
+              </div>
+            ))}
+          </div>
+        </>
+      );
+    }
+
+    function CoursesEditor({ content, setContent }) {
+      const list = content.fullCourses || [];
+      const update = (arr) => setContent({ ...content, fullCourses: arr });
+      const removeCourse = (i) => {
+        const removed = list[i];
+        const newList = list.filter((_, j) => j !== i);
+        const newPopular = (content.popularCourseIds || []).filter((id) => id !== removed?.id);
+        setContent({ ...content, fullCourses: newList, popularCourseIds: newPopular });
+      };
+      const newCourse = () => ({
+        id: `course_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+        icon: '📚',
+        title: '',
+        desc: '',
+        detail: '',
+        img: '',
+        downloadUrl: '',
+        category: 'design',
+        categoryLabel: 'Design',
+        modules: '',
+        duration: '',
+      });
+      return (
+        <div className="admin-card">
+          <h3>All courses (Courses page)</h3>
+          <p className="admin-hint" style={{ marginBottom: 16 }}>
+            Add and edit courses here. They appear on the Courses page. For the home page, pick courses in Admin → Popular Courses.
+          </p>
+          {list.map((c, i) => (
+            <div key={c.id || i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>{c.title || `Course ${i + 1}`}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => removeCourse(i)}>Remove</button>
+              </div>
+              <div className="admin-grid-2">
+                <Field label="Icon"><input value={c.icon || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], icon: e.target.value }; update(n); }} /></Field>
+                <Field label="Title"><input value={c.title || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], title: e.target.value }; update(n); }} /></Field>
+              </div>
+              <Field label="Description"><textarea value={c.desc || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], desc: e.target.value }; update(n); }} /></Field>
+              <Field label="Extra info (popup)" hint="Optional — shown in course details popup">
+                <textarea value={c.detail || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], detail: e.target.value }; update(n); }} />
+              </Field>
+              <Field label="Image URL" hint="Paste image link">
+                <input value={c.img || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], img: e.target.value }; update(n); }} />
+                {c.img && <img src={c.img} alt="" className="admin-preview-img" />}
+              </Field>
+              <Field label="Download button link" hint="PDF, brochure or file URL — opens when user clicks Download in course popup">
+                <input value={c.downloadUrl || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], downloadUrl: e.target.value }; update(n); }} placeholder="https://..." />
+              </Field>
+              <div className="admin-grid-2">
+                <Field label="Category ID"><input value={c.category || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], category: e.target.value }; update(n); }} /></Field>
+                <Field label="Category label"><input value={c.categoryLabel || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], categoryLabel: e.target.value }; update(n); }} /></Field>
+                <Field label="Modules"><input value={c.modules || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], modules: e.target.value }; update(n); }} /></Field>
+                <Field label="Duration"><input value={c.duration || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], duration: e.target.value }; update(n); }} /></Field>
+              </div>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => update([...list, newCourse()])}>+ Add course</button>
+        </div>
+      );
+    }
+
+    function PopularCoursesPicker({ content, setContent }) {
+      const [query, setQuery] = useState('');
+      const fullCourses = content.fullCourses || [];
+      const popularIds = content.popularCourseIds || [];
+      const setPopular = (ids) => setContent({ ...content, popularCourseIds: ids });
+      const q = query.trim().toLowerCase();
+      const selected = popularIds.map((id) => fullCourses.find((c) => c.id === id)).filter(Boolean);
+      const available = fullCourses.filter((c) => {
+        if (popularIds.includes(c.id)) return false;
+        if (!q) return true;
+        const hay = `${c.title || ''} ${c.desc || ''} ${c.categoryLabel || ''}`.toLowerCase();
+        return hay.includes(q);
+      });
+
+      return (
+        <div className="admin-card">
+          <h3>Popular courses (Home page)</h3>
+          <p className="admin-hint" style={{ marginBottom: 16 }}>
+            Search courses from the Courses section and add them to the home page Popular Courses block.
+          </p>
+          <Field label="Search courses" hint={fullCourses.length === 0 ? 'Add courses first in Admin → Courses.' : 'Type name or category, then pick from results'}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by course name..."
+              disabled={fullCourses.length === 0}
+            />
+          </Field>
+          {fullCourses.length > 0 && q && available.length > 0 && (
+            <ul className="admin-course-search-results">
+              {available.slice(0, 10).map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPopular([...popularIds, c.id]);
+                      setQuery('');
+                    }}
+                  >
+                    {c.icon || '📚'} {c.title || 'Untitled'}
+                    {c.categoryLabel ? ` · ${c.categoryLabel}` : ''}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {fullCourses.length > 0 && q && available.length === 0 && (
+            <p className="admin-hint">No matching courses, or already added to popular.</p>
+          )}
+          <div style={{ marginTop: 20 }}>
+            <strong style={{ fontSize: '0.88rem' }}>On home page ({selected.length})</strong>
+            {selected.length === 0 ? (
+              <p className="admin-hint">No popular courses selected yet.</p>
+            ) : (
+              selected.map((c) => (
+                <div key={c.id} className="admin-item-card admin-popular-selected">
+                  <span>{c.icon} {c.title}</span>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-sm admin-btn-danger"
+                    onClick={() => setPopular(popularIds.filter((id) => id !== c.id))}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function CoursesSection({ content, setContent }) {
+      return <CoursesEditor content={content} setContent={setContent} />;
+    }
+
+    function WorkshopsEditor({ content, setContent }) {
+      const list = content.workshops || [];
+      const update = (arr) => setContent({ ...content, workshops: arr });
+      return (
+        <div className="admin-card">
+          <h3>Workshops</h3>
+          {list.map((w, i) => (
+            <div key={i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>{w.title || `Workshop ${i + 1}`}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => update(list.filter((_, j) => j !== i))}>Remove</button>
+              </div>
+              <div className="admin-grid-2">
+                <Field label="Day"><input value={w.day || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], day: e.target.value }; update(n); }} /></Field>
+                <Field label="Month"><input value={w.month || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], month: e.target.value }; update(n); }} /></Field>
+              </div>
+              <Field label="Title"><input value={w.title || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], title: e.target.value }; update(n); }} /></Field>
+              <Field label="Date & time"><input value={w.datetime || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], datetime: e.target.value }; update(n); }} /></Field>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => update([...list, { day: '01', month: 'JAN', title: 'New Workshop', datetime: '' }])}>+ Add workshop</button>
+        </div>
+      );
+    }
+
+    function PageStatsEditor({ stats, onChange, title }) {
+      return (
+        <div className="admin-card">
+          <h3>{title}</h3>
+          {(stats || []).map((item, i) => (
+            <div key={i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>Stat {i + 1}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => onChange(stats.filter((_, j) => j !== i))}>Remove</button>
+              </div>
+              <div className="admin-grid-2">
+                <Field label="Icon (emoji)"><input value={item.icon || ''} onChange={(e) => { const n = [...stats]; n[i] = { ...n[i], icon: e.target.value }; onChange(n); }} /></Field>
+                <Field label="Number"><input value={item.num || ''} onChange={(e) => { const n = [...stats]; n[i] = { ...n[i], num: e.target.value }; onChange(n); }} /></Field>
+              </div>
+              <Field label="Label"><input value={item.label || ''} onChange={(e) => { const n = [...stats]; n[i] = { ...n[i], label: e.target.value }; onChange(n); }} /></Field>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => onChange([...(stats || []), { icon: '⭐', num: '0', label: 'New stat' }])}>+ Add stat</button>
+        </div>
+      );
+    }
+
+    function GalleryPageSection({ content, setContent }) {
+      const gp = content.galleryPage || {};
+      const setGp = (patch) => setContent({ ...content, galleryPage: { ...gp, ...patch } });
+      return (
+        <>
+          <div className="admin-card">
+            <h3>Page header (Photo Gallery page)</h3>
+            <Field label="Badge text"><input value={gp.badge || ''} onChange={(e) => setGp({ badge: e.target.value })} /></Field>
+            <div className="admin-grid-2">
+              <Field label="Title (before yellow)"><input value={gp.title || ''} onChange={(e) => setGp({ title: e.target.value })} /></Field>
+              <Field label="Title highlight (yellow)"><input value={gp.titleHighlight || ''} onChange={(e) => setGp({ titleHighlight: e.target.value })} /></Field>
+            </div>
+            <Field label="Description"><textarea value={gp.description || ''} onChange={(e) => setGp({ description: e.target.value })} /></Field>
+          </div>
+          <PageStatsEditor
+            title="Stats row (Photo Gallery page)"
+            stats={gp.stats || []}
+            onChange={(stats) => setGp({ stats })}
+          />
+          <GalleryEditor content={content} setContent={setContent} />
+        </>
+      );
+    }
+
+    function VideoGalleryPageSection({ content, setContent }) {
+      const vp = content.videoGalleryPage || {};
+      const setVp = (patch) => setContent({ ...content, videoGalleryPage: { ...vp, ...patch } });
+      return (
+        <>
+          <div className="admin-card">
+            <h3>Page header (Video Gallery page)</h3>
+            <Field label="Badge text"><input value={vp.badge || ''} onChange={(e) => setVp({ badge: e.target.value })} /></Field>
+            <div className="admin-grid-2">
+              <Field label="Title (before yellow)"><input value={vp.title || ''} onChange={(e) => setVp({ title: e.target.value })} /></Field>
+              <Field label="Title highlight (yellow)"><input value={vp.titleHighlight || ''} onChange={(e) => setVp({ titleHighlight: e.target.value })} /></Field>
+            </div>
+            <Field label="Description"><textarea value={vp.description || ''} onChange={(e) => setVp({ description: e.target.value })} /></Field>
+          </div>
+          <PageStatsEditor
+            title="Stats row (Video Gallery page)"
+            stats={vp.stats || []}
+            onChange={(stats) => setVp({ stats })}
+          />
+          <div className="admin-card">
+            <h3>Subscribe banner (bottom of page)</h3>
+            <Field label="Heading"><input value={vp.subscribeTitle || ''} onChange={(e) => setVp({ subscribeTitle: e.target.value })} /></Field>
+            <Field label="Text"><textarea value={vp.subscribeText || ''} onChange={(e) => setVp({ subscribeText: e.target.value })} /></Field>
+            <div className="admin-grid-2">
+              <Field label="Button label"><input value={vp.subscribeButton || ''} onChange={(e) => setVp({ subscribeButton: e.target.value })} /></Field>
+              <Field label="Button link (optional)" hint="YouTube channel or any URL">
+                <input value={vp.subscribeUrl || ''} onChange={(e) => setVp({ subscribeUrl: e.target.value })} placeholder="https://..." />
+              </Field>
+            </div>
+          </div>
+          <VideosEditor content={content} setContent={setContent} />
+        </>
+      );
+    }
+
+    function GalleryEditor({ content, setContent }) {
+      const list = content.gallery || [];
+      const update = (arr) => setContent({ ...content, gallery: arr });
+      const cats = ['classroom', 'workshops', 'events', 'campus', 'achievements'];
+      return (
+        <div className="admin-card">
+          <h3>Photos grid</h3>
+          <p className="admin-hint" style={{ marginBottom: 16 }}>These photos appear on the Photo Gallery page (and home gallery strip). Category: classroom, workshops, events, campus, achievements</p>
+          {list.map((p, i) => (
+            <div key={i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>Photo {i + 1}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => update(list.filter((_, j) => j !== i))}>Remove</button>
+              </div>
+              <Field label="Image URL" hint="https://... direct image link">
+                <input value={p.img || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], img: e.target.value }; update(n); }} />
+                {p.img && <img src={p.img} alt="" className="admin-preview-img" style={{ maxWidth: 160, height: 100 }} />}
+              </Field>
+              <div className="admin-grid-2">
+                <Field label="Alt text"><input value={p.alt || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], alt: e.target.value }; update(n); }} /></Field>
+                <Field label="Category">
+                  <select value={p.category || 'classroom'} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], category: e.target.value }; update(n); }}>
+                    {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </Field>
+              </div>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => update([...list, { img: '', alt: 'New photo', category: 'classroom' }])}>+ Add photo</button>
+        </div>
+      );
+    }
+
+    function VideosEditor({ content, setContent }) {
+      const list = content.videos || [];
+      const update = (arr) => setContent({ ...content, videos: arr });
+      const cats = ['success', 'expert', 'workshops', 'webinars', 'campus', 'events'];
+      const applyYoutube = (i, url) => {
+        const n = [...list];
+        const thumb = window.NYSA_FIREBASE.youtubeThumbnail(url);
+        n[i] = { ...n[i], youtubeUrl: url, img: thumb || '' };
+        update(n);
+      };
+      return (
+        <div className="admin-card">
+          <h3>Videos grid</h3>
+          <p className="admin-hint" style={{ marginBottom: 16 }}>These videos appear on the Video Gallery page (and home videos section). Thumbnail is auto-created from the YouTube link.</p>
+          {list.map((v, i) => (
+            <div key={i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>{v.title || `Video ${i + 1}`}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => update(list.filter((_, j) => j !== i))}>Remove</button>
+              </div>
+              <Field label="YouTube video link" hint="https://www.youtube.com/watch?v=... or youtu.be/...">
+                <input value={v.youtubeUrl || ''} onChange={(e) => applyYoutube(i, e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+              </Field>
+              {v.img && (
+                <img src={v.img} alt="" className="admin-preview-img" style={{ maxWidth: 200, marginBottom: 8 }} />
+              )}
+              <div className="admin-grid-2">
+                <Field label="Title"><input value={v.title || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], title: e.target.value }; update(n); }} /></Field>
+                <Field label="Duration"><input value={v.time || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], time: e.target.value }; update(n); }} /></Field>
+              </div>
+              <Field label="Subtitle"><input value={v.subtitle || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], subtitle: e.target.value }; update(n); }} /></Field>
+              <div className="admin-grid-2">
+                <Field label="Category">
+                  <select value={v.category || 'success'} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], category: e.target.value }; update(n); }}>
+                    {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </Field>
+                <Field label="Date"><input value={v.date || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], date: e.target.value }; update(n); }} /></Field>
+                <Field label="Views"><input value={v.views || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], views: e.target.value }; update(n); }} /></Field>
+                <Field label="Date sort (YYYYMMDD)"><input type="number" value={v.dateSort || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], dateSort: parseInt(e.target.value, 10) || 0 }; update(n); }} /></Field>
+              </div>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => update([...list, { title: 'New Video', subtitle: '', time: '0:00', youtubeUrl: '', img: '', category: 'success', date: '', dateSort: 20240101, views: '0' }])}>+ Add video</button>
+        </div>
+      );
+    }
+
+    function TestimonialsEditor({ content, setContent }) {
+      const list = content.testimonials || [];
+      const update = (arr) => setContent({ ...content, testimonials: arr });
+      return (
+        <div className="admin-card">
+          <h3>Testimonials</h3>
+          {list.map((t, i) => (
+            <div key={i} className="admin-item-card">
+              <div className="admin-item-head">
+                <strong>{t.name || `Testimonial ${i + 1}`}</strong>
+                <button type="button" className="admin-btn admin-btn-sm admin-btn-danger" onClick={() => update(list.filter((_, j) => j !== i))}>Remove</button>
+              </div>
+              <Field label="Quote"><textarea value={t.quote || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], quote: e.target.value }; update(n); }} /></Field>
+              <div className="admin-grid-2">
+                <Field label="Name"><input value={t.name || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], name: e.target.value }; update(n); }} /></Field>
+                <Field label="Role"><input value={t.role || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], role: e.target.value }; update(n); }} /></Field>
+              </div>
+              <Field label="Photo URL"><input value={t.img || ''} onChange={(e) => { const n = [...list]; n[i] = { ...n[i], img: e.target.value }; update(n); }} /></Field>
+            </div>
+          ))}
+          <button type="button" className="admin-btn admin-btn-outline admin-btn-sm" onClick={() => update([...list, { quote: '', name: '', role: '', img: '' }])}>+ Add testimonial</button>
+        </div>
+      );
+    }
+
+    function AboutEditor({ content, setContent }) {
+      const a = content.about || {};
+      const set = (key, val) => setContent({ ...content, about: { ...a, [key]: val } });
+      return (
+        <div className="admin-card">
+          <h3>About Page</h3>
+          <Field label="Mission"><textarea value={a.mission || ''} onChange={(e) => set('mission', e.target.value)} /></Field>
+          <Field label="Vision"><textarea value={a.vision || ''} onChange={(e) => set('vision', e.target.value)} /></Field>
+          <Field label="Mission/Vision center image URL"><input value={a.mvImage || ''} onChange={(e) => set('mvImage', e.target.value)} /></Field>
+          <Field label="Intro paragraph 1"><textarea value={a.intro1 || ''} onChange={(e) => set('intro1', e.target.value)} /></Field>
+          <Field label="Intro paragraph 2"><textarea value={a.intro2 || ''} onChange={(e) => set('intro2', e.target.value)} /></Field>
+          <Field label="Beneficiaries"><textarea value={a.beneficiaries || ''} onChange={(e) => set('beneficiaries', e.target.value)} /></Field>
+        </div>
+      );
+    }
+
+    function ContactEditor({ content, setContent }) {
+      const c = content.contact || {};
+      const setC = (key, val) => setContent({ ...content, contact: { ...c, [key]: val } });
+      return (
+        <>
+          <div className="admin-card">
+            <h3>Contact Info</h3>
+            <div className="admin-grid-2">
+              <Field label="Email"><input value={c.email || ''} onChange={(e) => setC('email', e.target.value)} /></Field>
+              <Field label="Website"><input value={c.website || ''} onChange={(e) => setC('website', e.target.value)} /></Field>
+              <Field label="Phone"><input value={c.phone || ''} onChange={(e) => setC('phone', e.target.value)} /></Field>
+            </div>
+            <Field label="Address"><input value={c.address || ''} onChange={(e) => setC('address', e.target.value)} /></Field>
+          </div>
+          <div className="admin-card">
+            <h3>Footer about text</h3>
+            <Field label="Footer description"><textarea value={content.footerAbout || ''} onChange={(e) => setContent({ ...content, footerAbout: e.target.value })} /></Field>
+          </div>
+        </>
+      );
+    }
+
+    function AdminPanel() {
+      const [section, setSection] = useState('hero');
+      const [content, setContent] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [saving, setSaving] = useState(false);
+      const [toast, setToast] = useState('');
+      const [navOpen, setNavOpen] = useState(false);
+
+      useEffect(() => {
+        window.NYSA_FIREBASE.loadSiteContent().then((data) => {
+          setContent(data);
+          setLoading(false);
+        });
+      }, []);
+
+      useEffect(() => {
+        const closeNav = () => {
+          if (window.innerWidth > 1024) setNavOpen(false);
+        };
+        window.addEventListener('resize', closeNav);
+        return () => window.removeEventListener('resize', closeNav);
+      }, []);
+
+      useEffect(() => {
+        document.body.style.overflow = navOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+      }, [navOpen]);
+
+      const pickSection = (id) => {
+        setSection(id);
+        setNavOpen(false);
+      };
+
+      const save = async () => {
+        setSaving(true);
+        try {
+          const normalized = window.NYSA_FIREBASE.normalizeContent(content);
+          await window.NYSA_FIREBASE.saveSiteContent(normalized);
+          setContent(normalized);
+          setToast('Saved to Firebase successfully!');
+          setTimeout(() => setToast(''), 3000);
+        } catch (err) {
+          setToast('Save failed: ' + (err.message || 'Check Firestore rules'));
+          console.error(err);
+        }
+        setSaving(false);
+      };
+
+      if (loading) return <div className="admin-loading">Loading content...</div>;
+
+      const renderSection = () => {
+        switch (section) {
+          case 'hero': return <HeroEditor content={content} setContent={setContent} />;
+          case 'aboutPreview': return <AboutPreviewEditor content={content} setContent={setContent} />;
+          case 'courses': return <CoursesSection content={content} setContent={setContent} />;
+          case 'popularCourses': return <PopularCoursesPicker content={content} setContent={setContent} />;
+          case 'workshops': return <WorkshopsEditor content={content} setContent={setContent} />;
+          case 'galleryPage': return <GalleryPageSection content={content} setContent={setContent} />;
+          case 'videoGalleryPage': return <VideoGalleryPageSection content={content} setContent={setContent} />;
+          case 'testimonials': return <TestimonialsEditor content={content} setContent={setContent} />;
+          case 'about': return <AboutEditor content={content} setContent={setContent} />;
+          case 'contact': return <ContactEditor content={content} setContent={setContent} />;
+          case 'stats': return <StatsEditor content={content} setContent={setContent} />;
+          default: return null;
+        }
+      };
+
+      return (
+        <div className="admin-layout">
+          <div
+            className={`admin-sidebar-backdrop ${navOpen ? 'visible' : ''}`}
+            onClick={() => setNavOpen(false)}
+            aria-hidden={!navOpen}
+          />
+          <aside className={`admin-sidebar ${navOpen ? 'open' : ''}`}>
+            <h2>NYSA <span>Admin</span></h2>
+            {SECTIONS.map((s) => (
+              <button key={s.id} type="button" className={`admin-nav-btn ${section === s.id ? 'active' : ''}`} onClick={() => pickSection(s.id)}>
+                {s.label}
+              </button>
+            ))}
+            <button type="button" className="admin-nav-btn" style={{ marginTop: 24, color: '#f87171' }} onClick={() => { sessionStorage.removeItem('nysa_admin_auth'); window.close(); }}>
+              Logout
+            </button>
+          </aside>
+          <main className="admin-main">
+            <div className="admin-topbar">
+              <div className="admin-topbar-left">
+                <button type="button" className="admin-menu-toggle" aria-label="Open menu" onClick={() => setNavOpen((o) => !o)}>
+                  ☰
+                </button>
+                <h1>{SECTIONS.find((s) => s.id === section)?.label}</h1>
+              </div>
+              <div className="admin-topbar-actions">
+                <button type="button" className="admin-btn admin-btn-outline" onClick={() => window.open('index.html', '_blank')}>View Website</button>
+                <button type="button" className="admin-btn admin-btn-dark" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save to Firebase'}</button>
+              </div>
+            </div>
+            {renderSection()}
+          </main>
+          {toast && <div className="admin-toast">{toast}</div>}
+        </div>
+      );
+    }
+
+    function App() {
+      const [authed, setAuthed] = useState(sessionStorage.getItem('nysa_admin_auth') === '1');
+      if (!authed) return <AdminLogin onSuccess={() => setAuthed(true)} />;
+      return <AdminPanel />;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
